@@ -37,6 +37,74 @@ class BskyClient:
             print(f"Search failed: {e}")
             return []
 
+    def get_followers(self, handle: str, limit: int = 1000) -> List[Dict]:
+        """Get followers of an account. Returns list of {did, handle}."""
+        print(f"Fetching followers of: {handle}")
+        followers = []
+        try:
+            cursor = None
+            fetched = 0
+
+            while fetched < limit:
+                resp = self.client.get_followers(
+                    actor=handle,
+                    limit=min(100, limit - fetched),
+                    cursor=cursor
+                )
+
+                for follower in resp.followers:
+                    followers.append({
+                        "did": follower.did,
+                        "handle": follower.handle
+                    })
+                    fetched += 1
+                    if fetched >= limit:
+                        break
+
+                # Check if there are more results
+                if not resp.cursor or fetched >= limit:
+                    break
+                cursor = resp.cursor
+
+        except Exception as e:
+            print(f"Failed to fetch followers for {handle}: {e}")
+
+        return followers
+
+    def get_following(self, handle: str, limit: int = 1000) -> List[Dict]:
+        """Get accounts that this account follows. Returns list of {did, handle}."""
+        print(f"Fetching following of: {handle}")
+        following = []
+        try:
+            cursor = None
+            fetched = 0
+
+            while fetched < limit:
+                resp = self.client.get_follows(
+                    actor=handle,
+                    limit=min(100, limit - fetched),
+                    cursor=cursor
+                )
+
+                for follow in resp.follows:
+                    following.append({
+                        "did": follow.did,
+                        "handle": follow.handle
+                    })
+                    fetched += 1
+                    if fetched >= limit:
+                        break
+
+                # Check if there are more results
+                if not resp.cursor or fetched >= limit:
+                    break
+                cursor = resp.cursor
+
+        except Exception as e:
+            print(f"Failed to fetch following for {handle}: {e}")
+
+        return following
+
     def fetch_profile(self, did: str) -> Optional[Dict]:
         try:
             p = self.client.get_profile(actor=did)

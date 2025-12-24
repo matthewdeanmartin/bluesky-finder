@@ -17,7 +17,7 @@ class ScoringThresholds(BaseModel):
 
 class AppConfig(BaseSettings):
     # Seed Data
-    seed_hashtags: List[str] = ["dctech", "dmvtech", "washingtondc"]
+    seed_hashtags: List[str] = ["#python", "#terraform", "#rstats"]
     anchor_handles: List[str] = ["capitalweather.bsky.social"]
 
     # Limits

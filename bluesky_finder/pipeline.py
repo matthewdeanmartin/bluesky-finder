@@ -20,18 +20,52 @@ class Pipeline:
         new_count = 0
 
         # Hashtags
+        print("\n[Hashtag Discovery]")
         for tag in settings.seed_hashtags:
             results = self.bsky.search_candidates(
                 tag, limit=settings.discovery_limits.max_candidates_per_hashtag
             )
             for res in results:
                 if self._add_candidate(
-                    res["did"], res["handle"], DiscoverySource.HASHTAG
+                        res["did"], res["handle"], DiscoverySource.HASHTAG
+                ):
+                    new_count += 1
+
+        # Anchor Accounts
+        print("\n[Anchor Account Discovery]")
+        for anchor_handle in settings.anchor_handles:
+            print(f"\nProcessing anchor: {anchor_handle}")
+
+            # Get followers
+            followers = self.bsky.get_followers(
+                anchor_handle,
+                limit=settings.discovery_limits.max_accounts_per_anchor // 2
+            )
+            print(f"  Found {len(followers)} followers")
+            for follower in followers:
+                if self._add_candidate(
+                        follower["did"],
+                        follower["handle"],
+                        DiscoverySource.ANCHOR_FOLLOW
+                ):
+                    new_count += 1
+
+            # Get following
+            following = self.bsky.get_following(
+                anchor_handle,
+                limit=settings.discovery_limits.max_accounts_per_anchor // 2
+            )
+            print(f"  Found {len(following)} following")
+            for follow in following:
+                if self._add_candidate(
+                        follow["did"],
+                        follow["handle"],
+                        DiscoverySource.ANCHOR_FOLLOW
                 ):
                     new_count += 1
 
         self.db.commit()
-        print(f"[*] Discovery complete. Added {new_count} new candidates.")
+        print(f"\n[*] Discovery complete. Added {new_count} new candidates.")
 
     def _add_candidate(self, did: str, handle: str, source: DiscoverySource) -> bool:
         exists = self.db.query(DbCandidate).filter_by(did=did).first()
@@ -39,9 +73,14 @@ class Pipeline:
             cand = DbCandidate(did=did, handle=handle, discovery_sources=[source.value])
             self.db.add(cand)
             return True
+        else:
+            # Update discovery sources if this is a new source
+            if source.value not in exists.discovery_sources:
+                exists.discovery_sources = exists.discovery_sources + [source.value]
+                self.db.add(exists)
         return False
 
-    def run_fetch(self, force=False):
+    def run_fetch(self, force: bool = False):
         """Fetch profiles and posts for candidates who need it."""
         print("[*] Starting Fetch...")
         candidates = self.db.query(DbCandidate).all()
@@ -53,9 +92,9 @@ class Pipeline:
             if not cand.profile:
                 need_profile = True
             elif (
-                force
-                or (datetime.utcnow() - cand.profile.fetched_at)
-                > settings.min_interval_profile_refresh
+                    force
+                    or (datetime.utcnow() - cand.profile.fetched_at)
+                    > settings.min_interval_profile_refresh
             ):
                 need_profile = True
 
@@ -95,7 +134,7 @@ class Pipeline:
 
             self.db.commit()
 
-    def run_evaluation(self, force=False):
+    def run_evaluation(self, force: bool = False):
         print("[*] Starting LLM Evaluation...")
         # Get candidates with profile + posts but no (or stale) eval
         candidates = self.db.query(DbCandidate).join(DbProfile).all()
@@ -138,7 +177,7 @@ class Pipeline:
             except Exception as e:
                 print(f"   [!] Eval failed for {cand.handle}: {e}")
 
-    def export_results(self, format="jsonl"):
+    def export_results(self, format: str = "jsonl"):
         import json
 
         results = (
@@ -168,6 +207,7 @@ class Pipeline:
                 "profile_url": f"https://bsky.app/profile/{c.handle}",
                 "avatar_url": c.profile.avatar_url if c.profile else None,
                 "display_name": c.profile.display_name if c.profile else c.handle,
+                "discovery_sources": c.discovery_sources,
             }
             candidates_data.append(row)
 
