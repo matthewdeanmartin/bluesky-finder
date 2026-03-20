@@ -4,7 +4,7 @@
 PYTHON := python
 CMD := bluesky_finder
 
-.PHONY: help install discover fetch evaluate run-all export export-jsonl clean
+.PHONY: help install gui discover fetch evaluate run-all export export-jsonl clean
 
 help: ## Show this help message
 	@echo "Usage: make [target]"
@@ -14,6 +14,9 @@ help: ## Show this help message
 
 install: ## Install the package in editable mode with dependencies
 	uv sync
+
+gui: ## Launch the tkinter GUI
+	uv run python -m bluesky_finder.gui
 
 discover: ## Step 1: Run seed discovery (hashtags/anchors)
 	$(CMD) discover

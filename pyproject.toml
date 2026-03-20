@@ -17,6 +17,7 @@ dependencies = [
     "sqlalchemy>=2.0.0",
     "requests-cache>=1.0.0",
     "jinja2",
+    "python-dotenv>=1.0.0",
 ]
 
 [build-system]
@@ -26,6 +27,9 @@ build-backend = "hatchling.build"
 [project.scripts]
 bluesky_finder = "bluesky_finder.cli:main"
 bluesky-finder = "bluesky_finder.cli:main"
+
+[project.gui-scripts]
+bluesky-finder-gui = "bluesky_finder.gui:main"
 
 [tool.isort]
 profile = "black"

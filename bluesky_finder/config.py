@@ -1,8 +1,12 @@
 from pathlib import Path
 from typing import List, Optional
 from datetime import timedelta
+from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Load .env (handles 'export VAR=val' syntax) before pydantic-settings reads env
+load_dotenv()
 
 
 class DiscoveryLimits(BaseModel):
@@ -50,7 +54,11 @@ class AppConfig(BaseSettings):
     # Scoring
     scoring_thresholds: ScoringThresholds = ScoringThresholds()
 
-    model_config = SettingsConfigDict(env_prefix="", case_sensitive=False)
+    model_config = SettingsConfigDict(
+        env_prefix="",
+        case_sensitive=False,
+        extra="ignore",
+    )
 
     @property
     def min_interval_profile_refresh(self) -> timedelta:
