@@ -34,4 +34,6 @@ bluesky-finder-gui = "bluesky_finder.gui:main"
 [tool.isort]
 profile = "black"
 [tool.uv]
+
+[tool.uv.pip]
 universal = true
